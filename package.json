@@ -1,0 +1,43 @@
+{
+  "name": "whatstalks",
+  "version": "1.0.6",
+  "description": "CLI tool to send movie`s talks to whatsapp for fun",
+  "main": "bin/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon src/main.js"
+  },
+  "bin": {
+    "whatstalks": "bin/index.js",
+    "@viniciusdev26/whatstalks": "bin/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "cli",
+    "4fun",
+    "whatsapp"
+  ],
+  "files": [
+    "bin/",
+    "lib/"
+  ],
+  "author": "Carlos Vinicius Lopes <viniciusdev.26@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.0.1",
+    "clear": "^0.1.0",
+    "figlet": "^1.5.2",
+    "puppeteer": "^14.1.1",
+    "puppeteer-core": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ViniciusDev26/whatstalks"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.16"
+  }
+}
