@@ -21,11 +21,10 @@ Source lives in `src/`, compiles to `dist/` (gitignored).
 - `src/index.ts` — CLI entry (`#!/usr/bin/env node`, shebang preserved by tsc). Figlet banner, `readline` prompt for the target phone number, then `main(phone)`.
 - `src/main.ts` — transport-agnostic orchestration. `main(recipient, adapter = new BaileysAdapter())` connects the adapter, reads `talks/shrek.txt`, splits on newlines, and sends each line with a 100ms delay, then disconnects.
 - `src/adapters/` — the **adapter (ports & adapters) pattern**:
-  - `whatsapp-adapter.ts` — the port: `interface WhatsAppAdapter { connect(); sendMessage(recipient, text); disconnect(); }`. `recipient` semantics are adapter-specific (see below).
-  - `baileys-adapter.ts` — **default backend**. Uses [`baileys`](https://www.npmjs.com/package/baileys) to talk to WhatsApp's WebSocket directly (no browser). QR printed to the terminal via `qrcode-terminal`; session persisted under `auth/` via `useMultiFileAuthState`. Recipient is a **phone number** (digits + country code, no `+`), normalized to a `<digits>@s.whatsapp.net` JID.
-  - `puppeteer-adapter.ts` — legacy fallback, kept behind the same port. Drives WhatsApp Web in headless Chromium. Recipient is a **contact display name** as it appears in the chat list. Selects the contact by `span[title='<name>']`, clicks the message box (`div[class='_1UWac _1LbR4']`), and types+Enters each line.
+  - `whatsapp-adapter.ts` — the port: `interface WhatsAppAdapter { connect(); sendMessage(recipient, text); disconnect(); }`. `recipient` semantics are adapter-specific.
+  - `baileys-adapter.ts` — the backend. Uses [`baileys`](https://www.npmjs.com/package/baileys) to talk to WhatsApp's WebSocket directly (no browser). QR printed to the terminal via `qrcode-terminal`; session persisted under `auth/` via `useMultiFileAuthState`. Recipient is a **phone number** (digits + country code, no `+`), normalized to a `<digits>@s.whatsapp.net` JID.
 
-To switch backends, pass an adapter instance as `main`'s second argument. Adding a new backend = implement `WhatsAppAdapter`.
+To add another backend, implement `WhatsAppAdapter` and pass an instance as `main`'s second argument.
 
 Scripts to send live in `talks/*.txt` at the repo root (currently only `shrek.txt`), resolved from the compiled module as `join(__dirname, '..', 'talks', ...)`.
 
@@ -34,7 +33,6 @@ Scripts to send live in `talks/*.txt` at the repo root (currently only `shrek.tx
 ## Fragility to know about
 
 - **Baileys** is pinned to a `7.0.0-rc*` prerelease; the API can shift between RCs. The `auth/` folder holds live session credentials — it is gitignored and must never be committed.
-- **Puppeteer adapter** relies on hardcoded WhatsApp Web DOM selectors (`span[title=...]`, `div[class='_1UWac _1LbR4']`) that break on any WhatsApp Web UI change — the most likely source of breakage for that backend.
 - The talk file is hardcoded to `shrek.txt` in `src/main.ts` — sending a different script means editing that path.
 
 ## Publishing
