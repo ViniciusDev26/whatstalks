@@ -11,6 +11,12 @@ import type { WhatsAppAdapter } from './whatsapp-adapter.js';
 export interface BaileysAdapterOptions {
   /** Directory where the multi-file auth state (creds/keys) is persisted. */
   authDir?: string;
+  /**
+   * Called with the raw QR string whenever WhatsApp asks the user to log in.
+   * Lets the caller coordinate rendering (e.g. pause a spinner). When omitted,
+   * the QR is printed to the terminal directly.
+   */
+  onQr?: (qr: string) => void;
 }
 
 /**
@@ -21,9 +27,11 @@ export interface BaileysAdapterOptions {
 export class BaileysAdapter implements WhatsAppAdapter {
   private sock?: WASocket;
   private readonly authDir: string;
+  private readonly onQr?: (qr: string) => void;
 
   constructor(options: BaileysAdapterOptions = {}) {
     this.authDir = options.authDir ?? 'auth';
+    this.onQr = options.onQr;
   }
 
   async connect(): Promise<void> {
@@ -39,8 +47,12 @@ export class BaileysAdapter implements WhatsAppAdapter {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-          console.log('\nScan this QR code with WhatsApp to log in:\n');
-          qrcode.generate(qr, { small: true });
+          if (this.onQr) {
+            this.onQr(qr);
+          } else {
+            console.log('\nScan this QR code with WhatsApp to log in:\n');
+            qrcode.generate(qr, { small: true });
+          }
         }
 
         if (connection === 'open') {

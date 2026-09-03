@@ -1,32 +1,40 @@
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 
 import type { WhatsAppAdapter } from './adapters/whatsapp-adapter.js';
-import { BaileysAdapter } from './adapters/baileys-adapter.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const TALKS_DIR = join(__dirname, '..', 'talks');
+
+/** Names (without extension) of the talk scripts available under `talks/`. */
+export function listScripts(): string[] {
+  return readdirSync(TALKS_DIR)
+    .filter((file) => file.endsWith('.txt'))
+    .map((file) => file.replace(/\.txt$/, ''))
+    .sort();
+}
+
+/** Read a talk script by name and return its non-empty lines. */
+export function loadScript(name: string): string[] {
+  const raw = readFileSync(join(TALKS_DIR, `${name}.txt`), 'utf8');
+  return raw.split('\n').filter((line) => line.trim().length > 0);
+}
 
 /**
- * Drive the send flow against any WhatsApp adapter: connect, stream the talk
- * file line by line to `recipient`, then disconnect.
+ * Send each line to `recipient` through the adapter, invoking `onProgress`
+ * after every message. Assumes the adapter is already connected.
  */
-export async function main(
+export async function sendScript(
+  adapter: WhatsAppAdapter,
   recipient: string,
-  adapter: WhatsAppAdapter = new BaileysAdapter()
+  lines: string[],
+  onProgress?: (sent: number, total: number) => void
 ): Promise<void> {
-  await adapter.connect();
-
-  const script = readFileSync(join(__dirname, '..', 'talks', 'shrek.txt'), 'utf8');
-  const talks = script.split('\n');
-
-  const total = talks.length;
-  for (const [index, talk] of talks.entries()) {
-    await adapter.sendMessage(recipient, talk);
+  const total = lines.length;
+  for (const [index, line] of lines.entries()) {
+    await adapter.sendMessage(recipient, line);
     await new Promise((resolve) => setTimeout(resolve, 100));
-    console.log(`${index + 1} / ${total} messages sent`);
+    onProgress?.(index + 1, total);
   }
-
-  console.log('finish');
-  await adapter.disconnect();
 }
