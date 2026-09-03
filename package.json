@@ -5,10 +5,13 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
+    "embed-talks": "node scripts/embed-talks.mjs",
+    "prebuild": "node scripts/embed-talks.mjs",
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build",
+    "pretest": "node scripts/embed-talks.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

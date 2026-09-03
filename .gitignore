@@ -3,3 +3,4 @@ browser
 qr.png
 dist
 auth
+src/talks.generated.ts

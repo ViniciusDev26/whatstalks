@@ -1,24 +1,16 @@
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { readFileSync, readdirSync } from 'fs';
-
 import type { WhatsAppAdapter } from './adapters/whatsapp-adapter.js';
+import { TALKS } from './talks.generated.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const TALKS_DIR = join(__dirname, '..', 'talks');
-
-/** Names (without extension) of the talk scripts available under `talks/`. */
+/** Names of the talk scripts embedded at build time (see scripts/embed-talks.mjs). */
 export function listScripts(): string[] {
-  return readdirSync(TALKS_DIR)
-    .filter((file) => file.endsWith('.txt'))
-    .map((file) => file.replace(/\.txt$/, ''))
-    .sort();
+  return Object.keys(TALKS).sort();
 }
 
-/** Read a talk script by name and return its non-empty lines. */
+/** Return a talk script's non-empty lines by name. Throws if it doesn't exist. */
 export function loadScript(name: string): string[] {
-  const raw = readFileSync(join(TALKS_DIR, `${name}.txt`), 'utf8');
-  return raw.split('\n').filter((line) => line.trim().length > 0);
+  const lines = TALKS[name];
+  if (!lines) throw new Error(`Unknown talk script: ${name}`);
+  return lines;
 }
 
 /**

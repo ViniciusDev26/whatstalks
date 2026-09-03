@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
+
 import { search, select, confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import figlet from 'figlet';
@@ -10,8 +12,18 @@ import qrcode from 'qrcode-terminal';
 import { BaileysAdapter } from './adapters/baileys-adapter.js';
 import { jidToNumber } from './adapters/jid.js';
 import type { Contact } from './adapters/whatsapp-adapter.js';
+import { parseFlag, resolveVersion, helpText } from './cli.js';
 import { buildRecipientChoices, contactLabel } from './contact-search.js';
 import { listScripts, loadScript, sendScript } from './main.js';
+import { authDir } from './paths.js';
+
+// __WHATSTALKS_VERSION__ is injected at binary build time (e.g. Bun --define);
+// otherwise fall back to package.json for the npm-distributed build.
+declare const __WHATSTALKS_VERSION__: string;
+const VERSION: string = resolveVersion(
+  typeof __WHATSTALKS_VERSION__ === 'string' ? __WHATSTALKS_VERSION__ : undefined,
+  () => createRequire(import.meta.url)('../package.json').version
+);
 
 async function pickRecipient(contacts: Contact[]): Promise<{ jid: string; label: string }> {
   const jid = await search<string>({
@@ -41,6 +53,7 @@ async function run(): Promise<void> {
   // 1. Connect first so we can pull the contact list.
   const spinner = ora('Connecting to WhatsApp...').start();
   const adapter = new BaileysAdapter({
+    authDir: authDir(),
     onQr: (qr) => {
       spinner.stop();
       console.log('\nScan this QR code with WhatsApp to log in:\n');
@@ -108,6 +121,16 @@ async function run(): Promise<void> {
   }
 
   console.log(chalk.green('\nDone! Messages sent.'));
+}
+
+const action = parseFlag(process.argv[2]);
+if (action === 'version') {
+  console.log(VERSION);
+  process.exit(0);
+}
+if (action === 'help') {
+  console.log(helpText(VERSION, authDir()));
+  process.exit(0);
 }
 
 run()

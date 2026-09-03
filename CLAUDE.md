@@ -18,8 +18,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Source lives in `src/`, compiles to `dist/` (gitignored).
 
-- `src/index.ts` — the **interactive CLI shell** (`#!/usr/bin/env node`, shebang preserved by tsc). Owns all UX and the flow order: figlet banner → **connect first** (`ora` spinner, QR if needed) → load contacts → `@inquirer/prompts` `search` to pick a recipient from the contact list (typing a phone number offers a "manual number" option, so it works even with an empty contact list) → `select` a talk script → `confirm` → `cli-progress` bar for the send. Ctrl-C at a prompt surfaces as `ExitPromptError` and exits cleanly.
-- `src/main.ts` — transport-agnostic **domain helpers** (no UX): `listScripts()` (talk names under `talks/`), `loadScript(name)` (non-empty lines), and `sendScript(adapter, recipient, lines, onProgress?)` (assumes an already-connected adapter; sends each line with a 100ms delay, calling `onProgress(sent, total)`).
+- `src/index.ts` — the **interactive CLI shell** (`#!/usr/bin/env node`, shebang preserved by tsc). Handles `--version`/`--help` (via `cli.ts`) up front, then owns all UX and the flow order: figlet banner → **connect first** (`ora` spinner, QR if needed) → load contacts → `@inquirer/prompts` `search` to pick a recipient from the contact list (typing a phone number offers a "manual number" option, so it works even with an empty contact list) → `select` a talk script → `confirm` → `cli-progress` bar for the send. Ctrl-C at a prompt surfaces as `ExitPromptError` and exits cleanly.
+- `src/cli.ts` — pure CLI helpers: `parseFlag(arg)`, `resolveVersion(injected, reader)`, `helpText(version, sessionPath)`. Version comes from a build-time `__WHATSTALKS_VERSION__` define (for binaries) or falls back to reading `package.json`.
+- `src/paths.ts` — `configDir()` / `authDir()`: cross-platform per-user config dir (`%APPDATA%` on Windows, `$XDG_CONFIG_HOME` or `~/.config` elsewhere). `env`/`platform` are injectable for tests. The CLI passes `authDir()` to the adapter so session state lives outside the CWD.
+- `src/main.ts` — transport-agnostic **domain helpers** (no UX): `listScripts()` / `loadScript(name)` read the **embedded** `TALKS` (see below), and `sendScript(adapter, recipient, lines, onProgress?, delayMs?)` sends each line (100ms default throttle; tests pass `0`) via an already-connected adapter, calling `onProgress(sent, total)`.
 - `src/adapters/` — the **adapter (ports & adapters) pattern**:
   - `whatsapp-adapter.ts` — the port: `interface WhatsAppAdapter { connect(); listContacts(): Promise<Contact[]>; sendMessage(recipient, text); disconnect(); }` plus the `Contact` type (`{ id: jid, name?, number }`). `recipient` semantics are adapter-specific.
   - `baileys-adapter.ts` — the backend. Uses [`baileys`](https://www.npmjs.com/package/baileys) to talk to WhatsApp's WebSocket directly (no browser). Session persisted under `auth/` via `useMultiFileAuthState`; Baileys' pino logger is silenced so it doesn't spam the CLI. QR handling: pass `onQr(qr)` in the constructor options to render it yourself (the CLI does this to pause the spinner); otherwise it prints via `qrcode-terminal`. Recipient is a **phone number** (digits + country code, no `+`) or a full JID, normalized to `<digits>@s.whatsapp.net`.
@@ -28,7 +30,7 @@ Source lives in `src/`, compiles to `dist/` (gitignored).
 
 To add another backend, implement `WhatsAppAdapter` and construct it in `src/index.ts` instead of `BaileysAdapter`.
 
-Talk scripts live in `talks/*.txt` at the repo root, resolved from the compiled module as `join(__dirname, '..', 'talks', ...)`. The CLI lists them dynamically — dropping a new `.txt` there makes it selectable, no code change.
+Talk scripts live in `talks/*.txt` at the repo root (the source of truth). `scripts/embed-talks.mjs` generates `src/talks.generated.ts` (a `TALKS: Record<string, string[]>` of non-empty lines), run via `prebuild` and `pretest`. `main.ts` reads that embedded map — no filesystem access at runtime — so a single-file binary works without shipping `talks/`. Drop a new `.txt` in `talks/` and it's picked up on the next build/test; `src/talks.generated.ts` is gitignored.
 
 ## Fragility to know about
 
@@ -36,12 +38,16 @@ Talk scripts live in `talks/*.txt` at the repo root, resolved from the compiled 
 
 ## Testing
 
-Vitest, tests under `test/*.test.ts`. To keep units pure and testable, logic is
-extracted out of the CLI/adapter side-effect code:
+Vitest, tests under `test/*.test.ts`. **New functions must ship with unit tests.**
+To keep units pure and testable, extract logic out of the CLI/adapter side-effect
+code into a plain module and test that (don't test `index.ts`/adapters directly —
+importing them triggers side effects). Current tested modules:
 - `src/adapters/jid.ts` — JID normalization (`toJid`, `jidToNumber`, `isUserJid`).
 - `src/contact-search.ts` — `buildRecipientChoices` / `contactLabel` (the search
   filter + manual-number fallback), imported by `index.ts`.
 - `src/signal-log-filter.ts` — exports `isSignalNoise` + `installSignalLogFilter`.
+- `src/cli.ts` — `parseFlag` / `resolveVersion` / `helpText` (the `--version`/`--help` logic).
+- `src/paths.ts` — `configDir` / `authDir` (inject `env`/`platform` to test each branch).
 - `src/main.ts` `sendScript` takes a `delayMs` (default 100; tests pass `0`) and
   any `WhatsAppAdapter`, so a fake adapter can assert what got sent.
 
