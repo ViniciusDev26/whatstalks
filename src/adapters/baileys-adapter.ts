@@ -9,8 +9,12 @@ import qrcode from 'qrcode-terminal';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
-import '../signal-log-filter.js'; // silence libsignal's console session chatter
+import { installSignalLogFilter } from '../signal-log-filter.js';
+import { USER_JID_SUFFIX, toJid } from './jid.js';
 import type { Contact, WhatsAppAdapter } from './whatsapp-adapter.js';
+
+// Silence libsignal's console session chatter as soon as this backend loads.
+installSignalLogFilter();
 
 export interface BaileysAdapterOptions {
   /** Directory where the multi-file auth state (creds/keys) is persisted. */
@@ -24,8 +28,6 @@ export interface BaileysAdapterOptions {
   /** How long `listContacts()` waits for the history sync before giving up (ms). */
   contactSyncTimeoutMs?: number;
 }
-
-const USER_JID_SUFFIX = '@s.whatsapp.net';
 
 /** No-op logger so Baileys doesn't spam the CLI with pino JSON output. */
 const silentLogger = {
@@ -224,11 +226,4 @@ export class BaileysAdapter implements WhatsAppAdapter {
     this.syncWaiters = [];
     waiters.forEach((resolve) => resolve());
   }
-}
-
-/** Normalize a phone number (or raw JID) into a WhatsApp user JID. */
-function toJid(recipient: string): string {
-  if (recipient.includes('@')) return recipient;
-  const digits = recipient.replace(/\D/g, '');
-  return `${digits}${USER_JID_SUFFIX}`;
 }

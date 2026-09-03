@@ -11,8 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` — compile `src/**/*.ts` → `dist/` via `tsc`.
 - `npm run dev` — `tsc --watch` incremental compile.
 - `npm start` — run the compiled CLI (`node dist/index.js`).
-- Node version is pinned to 24 via `mise.toml` (`mise install` to provision).
-- No test suite (`npm test` is a stub that exits 1) and no linter configured.
+- `npm test` — run the Vitest suite once (`vitest run`); `npm run test:watch` for watch mode. Run a single file with `npx vitest run test/jid.test.ts`.
+- Node version is pinned to 24 via `mise.toml` (`mise install` to provision). No linter configured.
 
 ## Architecture
 
@@ -34,6 +34,68 @@ Talk scripts live in `talks/*.txt` at the repo root, resolved from the compiled 
 
 - **Baileys** is pinned to a `7.0.0-rc*` prerelease; the API can shift between RCs. The `auth/` folder holds live session credentials — it is gitignored and must never be committed.
 
+## Testing
+
+Vitest, tests under `test/*.test.ts`. To keep units pure and testable, logic is
+extracted out of the CLI/adapter side-effect code:
+- `src/adapters/jid.ts` — JID normalization (`toJid`, `jidToNumber`, `isUserJid`).
+- `src/contact-search.ts` — `buildRecipientChoices` / `contactLabel` (the search
+  filter + manual-number fallback), imported by `index.ts`.
+- `src/signal-log-filter.ts` — exports `isSignalNoise` + `installSignalLogFilter`.
+- `src/main.ts` `sendScript` takes a `delayMs` (default 100; tests pass `0`) and
+  any `WhatsAppAdapter`, so a fake adapter can assert what got sent.
+
+When adding behavior, prefer putting the logic in one of these pure modules and
+having `index.ts` / `baileys-adapter.ts` just wire it up.
+
+## CI/CD
+
+- `.github/workflows/ci.yml` — build + `npm test` on PRs and non-main pushes.
+- `.github/workflows/release.yml` — on push to `main`: build, test, then
+  `npx semantic-release`.
+- **semantic-release** (`.releaserc.json`) drives versioning/publishing from
+  **conventional-commit** messages (see the convention below). It publishes to
+  npm, creates the GitHub release + `vX.Y.Z` tag, and commits `CHANGELOG.md` +
+  version bump back to `main`.
+- Requires an `NPM_TOKEN` repo secret (an npm automation token). `GITHUB_TOKEN`
+  is provided by Actions.
+- The baseline tag `v1.0.6` marks the last manual release so the first automated
+  version continues from there (avoids colliding with versions already on npm).
+
+## Commit message convention (REQUIRED)
+
+Releases are triggered entirely by commit messages, so **every commit must follow
+[Conventional Commits](https://www.conventionalcommits.org)**:
+
+```
+<type>[optional scope][optional !]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Version impact when merged to `main`:
+
+| Type / marker | Example | Release |
+| --- | --- | --- |
+| `feat:` | `feat: add contact search picker` | minor (1.1.0) |
+| `fix:` | `fix: normalize numbers with a leading +` | patch (1.0.1) |
+| `feat!:` / `fix!:` or a `BREAKING CHANGE:` footer | `feat!: require Node 24` | major (2.0.0) |
+| `perf:` | `perf: batch contact writes` | patch |
+| `chore:` `ci:` `test:` `docs:` `refactor:` `style:` `build:` | `test: cover jid helpers` | **no release** |
+
+Rules:
+- Keep the description imperative and lowercase, no trailing period.
+- Use a scope when it helps: `feat(baileys): ...`, `fix(cli): ...`.
+- A commit that should never publish (tests, tooling, docs) must use a
+  no-release type — otherwise a stray `feat:`/`fix:` cuts a new version.
+- For a breaking change, add either `!` after the type or a `BREAKING CHANGE:`
+  footer describing the migration.
+
+> The `Co-Authored-By` trailer this repo appends to commits is fine — semantic
+> release only reads the header line and `BREAKING CHANGE:` footers.
+
 ## Publishing
 
-Published to npm as `whatstalks` / `@viniciusdev26/whatstalks` (`publishConfig.access: public`). `prepublishOnly` runs the build; only `dist/` and `talks/` are shipped (`files` field). `bin` points at `dist/index.js`.
+Published to npm as `whatstalks` / `@viniciusdev26/whatstalks` (`publishConfig.access: public`). `prepublishOnly` runs the build; only `dist/` and `talks/` are shipped (`files` field). `bin` points at `dist/index.js`. Publishing is automated via the release workflow above — avoid manual `npm publish`.

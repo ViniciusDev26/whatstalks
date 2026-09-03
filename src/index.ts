@@ -8,45 +8,19 @@ import cliProgress from 'cli-progress';
 import qrcode from 'qrcode-terminal';
 
 import { BaileysAdapter } from './adapters/baileys-adapter.js';
+import { jidToNumber } from './adapters/jid.js';
 import type { Contact } from './adapters/whatsapp-adapter.js';
+import { buildRecipientChoices, contactLabel } from './contact-search.js';
 import { listScripts, loadScript, sendScript } from './main.js';
-
-function contactLabel(contact: Contact): string {
-  return contact.name ? `${contact.name} (${contact.number})` : contact.number;
-}
 
 async function pickRecipient(contacts: Contact[]): Promise<{ jid: string; label: string }> {
   const jid = await search<string>({
     message: 'Search a contact (or type a phone number with country code):',
-    source: (term) => {
-      const raw = (term ?? '').trim();
-      const needle = raw.toLowerCase();
-      const digits = raw.replace(/\D/g, '');
-
-      const choices = contacts
-        .filter((c) =>
-          needle
-            ? (c.name ?? '').toLowerCase().includes(needle) ||
-              (digits.length > 0 && c.number.includes(digits))
-            : true
-        )
-        .slice(0, 50)
-        .map((c) => ({ name: contactLabel(c), value: c.id }));
-
-      // Always allow sending to a raw number that isn't in the contact list.
-      if (digits.length >= 8 && !contacts.some((c) => c.number === digits)) {
-        choices.unshift({
-          name: `Send to ${digits} (manual number)`,
-          value: `${digits}@s.whatsapp.net`,
-        });
-      }
-
-      return choices;
-    },
+    source: (term) => buildRecipientChoices(contacts, term),
   });
 
   const chosen = contacts.find((c) => c.id === jid);
-  return { jid, label: chosen ? contactLabel(chosen) : jid.replace(/@.*/, '') };
+  return { jid, label: chosen ? contactLabel(chosen) : jidToNumber(jid) };
 }
 
 async function run(): Promise<void> {
