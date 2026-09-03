@@ -9,7 +9,7 @@ permissions:
   contents: write # create tags, releases, and push the changelog commit
   issues: write # comment on released issues
   pull-requests: write # comment on released PRs
-  id-token: write # npm provenance
+  id-token: write # OIDC: npm trusted publishing + provenance
 
 jobs:
   release:
@@ -26,6 +26,10 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org
 
+      # Trusted publishing (OIDC) requires npm >= 11.5.1.
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - run: npm ci
       - run: npm run build
       - run: npm test
@@ -34,5 +38,3 @@ jobs:
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"

@@ -54,11 +54,17 @@ having `index.ts` / `baileys-adapter.ts` just wire it up.
 - `.github/workflows/release.yml` — on push to `main`: build, test, then
   `npx semantic-release`.
 - **semantic-release** (`.releaserc.json`) drives versioning/publishing from
-  **conventional-commit** messages (see the convention below). It publishes to
-  npm, creates the GitHub release + `vX.Y.Z` tag, and commits `CHANGELOG.md` +
-  version bump back to `main`.
-- Requires an `NPM_TOKEN` repo secret (an npm automation token). `GITHUB_TOKEN`
-  is provided by Actions.
+  **conventional-commit** messages (see the convention below). It computes the
+  version, creates the GitHub release + `vX.Y.Z` tag, and commits `CHANGELOG.md`
+  + version bump back to `main`.
+- **Publishing uses npm trusted publishing (OIDC) — no `NPM_TOKEN`.** The npm
+  plugin is set to `npmPublish: false` (it only bumps the version); the actual
+  publish is done by `@semantic-release/npm`'s replacement, the `@semantic-release/exec`
+  plugin running `npm publish --provenance` in the publish step. This works
+  because the workflow has `id-token: write` and the npm package is configured
+  with a **Trusted Publisher** pointing at `ViniciusDev26/whatstalks` → `release.yml`.
+  The workflow updates npm to the latest (OIDC needs npm ≥ 11.5.1). Only
+  `GITHUB_TOKEN` (auto-provided) is needed as a secret.
 - The baseline tag `v1.0.6` marks the last manual release so the first automated
   version continues from there (avoids colliding with versions already on npm).
 
@@ -98,4 +104,4 @@ Rules:
 
 ## Publishing
 
-Published to npm as `whatstalks` / `@viniciusdev26/whatstalks` (`publishConfig.access: public`). `prepublishOnly` runs the build; only `dist/` and `talks/` are shipped (`files` field). `bin` points at `dist/index.js`. Publishing is automated via the release workflow above — avoid manual `npm publish`.
+Published to npm as `whatstalks` / `@viniciusdev26/whatstalks` (`publishConfig.access: public`). `prepublishOnly` runs the build; only `dist/` and `talks/` are shipped (`files` field). `bin` points at `dist/index.js`. Publishing is automated via the release workflow above (trusted publishing / OIDC) — avoid manual `npm publish`.
