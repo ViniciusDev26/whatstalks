@@ -13,8 +13,7 @@
     "test:watch": "vitest"
   },
   "bin": {
-    "whatstalks": "dist/index.js",
-    "@viniciusdev26/whatstalks": "dist/index.js"
+    "whatstalks": "dist/index.js"
   },
   "publishConfig": {
     "access": "public"
@@ -41,7 +40,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ViniciusDev26/whatstalks"
+    "url": "git+https://github.com/ViniciusDev26/whatstalks.git"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^7.0.0",
