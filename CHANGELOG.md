@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/ViniciusDev26/whatstalks/compare/v2.0.0...v2.0.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* correct invalid bin alias and repository url ([019f705](https://github.com/ViniciusDev26/whatstalks/commit/019f7050e33c65c7e3a73f77ee0373d4f1305dd4))
+
 # [2.0.0](https://github.com/ViniciusDev26/whatstalks/compare/v1.0.6...v2.0.0) (2026-09-03)
 
 
