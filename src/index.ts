@@ -2,12 +2,11 @@
 
 import readline from 'readline';
 import chalk from 'chalk';
-import clear from 'clear';
 import figlet from 'figlet';
 
 import { main } from './main.js';
 
-clear();
+console.clear();
 console.log(
   chalk.green(
     figlet.textSync('WhatsTalks', { horizontalLayout: 'controlled smushing' })

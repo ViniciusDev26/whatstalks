@@ -28,8 +28,6 @@ To add another backend, implement `WhatsAppAdapter` and pass an instance as `mai
 
 Scripts to send live in `talks/*.txt` at the repo root (currently only `shrek.txt`), resolved from the compiled module as `join(__dirname, '..', 'talks', ...)`.
 
-`clear` has no published types; a local ambient declaration lives in `src/types/clear.d.ts`.
-
 ## Fragility to know about
 
 - **Baileys** is pinned to a `7.0.0-rc*` prerelease; the API can shift between RCs. The `auth/` folder holds live session credentials — it is gitignored and must never be committed.
