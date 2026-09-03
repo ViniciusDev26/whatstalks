@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/ViniciusDev26/whatstalks/compare/v2.0.1...v2.1.0) (2026-09-03)
+
+
+### Features
+
+* add --version/--help flags, cross-platform config dir, embedded talks ([173f211](https://github.com/ViniciusDev26/whatstalks/commit/173f21102599d0c953ceabe435dff1dec957d73c))
+
 ## [2.0.1](https://github.com/ViniciusDev26/whatstalks/compare/v2.0.0...v2.0.1) (2026-09-03)
 
 
