@@ -2,15 +2,18 @@
   "name": "whatstalks",
   "version": "1.0.6",
   "description": "CLI tool to send movie`s talks to whatsapp for fun",
-  "main": "bin/index.js",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/main.js"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "whatstalks": "bin/index.js",
-    "@viniciusdev26/whatstalks": "bin/index.js"
+    "whatstalks": "dist/index.js",
+    "@viniciusdev26/whatstalks": "dist/index.js"
   },
   "publishConfig": {
     "access": "public"
@@ -21,23 +24,27 @@
     "whatsapp"
   ],
   "files": [
-    "bin/",
-    "lib/"
+    "dist/",
+    "talks/"
   ],
   "author": "Carlos Vinicius Lopes <viniciusdev.26@gmail.com>",
   "license": "ISC",
   "dependencies": {
+    "baileys": "^7.0.0-rc14",
     "chalk": "^5.0.1",
     "clear": "^0.1.0",
     "figlet": "^1.5.2",
-    "puppeteer": "^14.1.1",
-    "puppeteer-core": "^14.1.1"
+    "puppeteer": "^25.10.0",
+    "qrcode-terminal": "^0.12.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/ViniciusDev26/whatstalks"
   },
   "devDependencies": {
-    "nodemon": "^2.0.16"
+    "@types/figlet": "^1.7.0",
+    "@types/node": "^26.4.1",
+    "@types/qrcode-terminal": "^0.12.2",
+    "typescript": "^7.0.2"
   }
 }
